@@ -14,7 +14,7 @@ struct Params {
     int M, N;
     double Pt;
     double Gt_dB, Gr_dB;
-    double G;
+    double G_dB;
     double A;
     double d1;
     double x_rx, y_rx, z_rx;
@@ -55,7 +55,8 @@ double compute_Prx(const std::vector<std::vector<int>>& binary, const Params& p)
 
     double Gt = db2lin(p.Gt_dB);
     double Gr = db2lin(p.Gr_dB);
-    double prefactor = (p.Pt * Gt * Gr * p.G * p.dx * p.dy * p.lambda * p.lambda * p.A * p.A) / (64.0 * std::pow(PI, 3));
+    double G = db2lin(p.G_dB);
+    double prefactor = (p.Pt * Gt * Gr * G * p.dx * p.dy * p.lambda * p.lambda * p.A * p.A) / (64.0 * std::pow(PI, 3));
     return prefactor * std::norm(sum);
 }
 
@@ -69,13 +70,13 @@ int main() {
     p.Pt = 1e-3;
     p.Gt_dB = 60;
     p.Gr_dB = 34;
-    p.G = 8.0;
+    p.G_dB = 0; // Element gain in dB
     p.A = 1.0;
     p.d1 = 3.5;
 
     // Target Rx location
     double d2 = 1.0;
-    double azimuth_deg = 30.0;
+    double azimuth_deg = 40.0;
     double azimuth_rad = azimuth_deg * PI / 180.0;
     p.x_rx = d2 * std::cos(azimuth_rad);
     p.y_rx = d2 * std::sin(azimuth_rad);
@@ -120,7 +121,8 @@ int main() {
     for (int m = 0; m < p.M; ++m) {
         std::cout << ((best_pattern >> m) & 1) << " ";
     }
-    std::cout << "\nMax Power: " << std::scientific << max_power << " W\n";
+    std::cout << "\nMax Power: " << std::scientific << max_power << " W";
+    std::cout << " (" << std::fixed << std::setprecision(2) << 10 * std::log10(max_power) << " dBW)\n";
 
     // Output worst pattern
     std::cout << "\n=== WORST PATTERN ===\n";
@@ -128,7 +130,8 @@ int main() {
     for (int m = 0; m < p.M; ++m) {
         std::cout << ((worst_pattern >> m) & 1) << " ";
     }
-    std::cout << "\nMin Power: " << std::scientific << min_power << " W\n";
+    std::cout << "\nMin Power: " << std::scientific << min_power << " W";
+    std::cout << " (" << std::fixed << std::setprecision(2) << 10 * std::log10(min_power) << " dBW)\n";
 
     return 0;
 }
