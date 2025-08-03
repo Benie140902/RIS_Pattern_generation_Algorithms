@@ -14,7 +14,7 @@ class Params:
         self.Pt = 1e-3                # transmit power (W)
         self.Gt_dB = 60               # Tx gain in dB
         self.Gr_dB = 34               # Rx gain in dB
-        self.G = 8.0                  # unit cell gain (linear)
+        self.G_dB = 0                  # unit cell gain (dB)
         self.A = 1.0                  # reflection magnitude
         self.d1 = 3.5                 # Tx distance behind RIS
 
@@ -52,7 +52,8 @@ def compute_Prx(binary, p):
 
     Gt = db2lin(p.Gt_dB)
     Gr = db2lin(p.Gr_dB)
-    prefactor = (p.Pt * Gt * Gr * p.G * p.dx * p.dy * p.lambda_**2 * p.A**2) / (64 * PI**3)
+    G=db2lin(p.G_dB)
+    prefactor = (p.Pt * Gt * Gr * G * p.dx * p.dy * p.lambda_**2 * p.A**2) / (64 * PI**3)
     return prefactor * abs(total_field)**2
 
 def generate_pattern_from_int(pattern_int, M, N):
@@ -91,9 +92,10 @@ if __name__ == "__main__":
     print("\n=== BEST PATTERN ===")
     print(f"Bitmask: 0x{best['pattern']:04X}")
     print("Columns ON/OFF:", format_pattern(best["pattern"], p.M))
-    print(f"Max Power: {best['power']:.3e} W")
+    print(f"Max Power: {best['power']:.3e} W ({10 * np.log10(best['power']):.2f} dBW)")
+    
 
     print("\n=== WORST PATTERN ===")
     print(f"Bitmask: 0x{worst['pattern']:04X}")
     print("Columns ON/OFF:", format_pattern(worst["pattern"], p.M))
-    print(f"Min Power: {worst['power']:.3e} W")
+    print(f"Min Power: {worst['power']:.3e} W ({10 * np.log10(worst['power']):.2f} dBW)")
