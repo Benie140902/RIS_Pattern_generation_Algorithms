@@ -9,14 +9,14 @@ PI = np.pi
 class Params:
     def __init__(self):
         self.lambda_ = 0.085
-        self.dx = self.dy = 26 mm
+        self.dx = self.dy = 0.026
         self.M = self.N = 16
-        self.Pt = 1e-3
-        self.Gt_dB = 60
-        self.Gr_dB = 34
-        self.G_dB = 0
-        self.A = 1.0
-        self.d1 = 3.5
+        self.Pt = 1
+        self.Gt_dB = 20
+        self.Gr_dB = 20
+        self.G_dB = 15
+        self.A = 0.8
+        self.d1 = 3.0
 
         azimuth_deg = 30.0
         azimuth_rad = np.radians(azimuth_deg)
@@ -145,5 +145,6 @@ if __name__ == "__main__":
     #     print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
     #     print("256-bit Hex Pattern:", item["hex256"])
     #     print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
+
 
 
