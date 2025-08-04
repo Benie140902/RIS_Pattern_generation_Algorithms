@@ -10,18 +10,18 @@ class Params:
     def __init__(self):
         self.lambda_ = 0.085          # wavelength (m)
         self.dx = self.dy = 0.015     # RIS spacing (m)
-        self.M = self.N = 16          # RIS size
+        self.M = self.N = 16          # RIS size (16x16)
         self.Pt = 1e-3                # transmit power (W)
         self.Gt_dB = 60               # Tx gain in dB
         self.Gr_dB = 34               # Rx gain in dB
-        self.G_dB = 0                  # unit cell gain (dB)
+        self.G_dB = 0                 # unit cell gain (dB)
         self.A = 1.0                  # reflection magnitude
         self.d1 = 3.5                 # Tx distance behind RIS
 
-        # Rx position (near-field, azimuth 30°)
+        # Rx position (azimuth 30°)
         azimuth_deg = 30.0
         azimuth_rad = np.radians(azimuth_deg)
-        d2 = 1.0
+        d2 = 3.0
         self.x_rx = d2 * np.cos(azimuth_rad)
         self.y_rx = d2 * np.sin(azimuth_rad)
         self.z_rx = 0.0
@@ -52,15 +52,33 @@ def compute_Prx(binary, p):
 
     Gt = db2lin(p.Gt_dB)
     Gr = db2lin(p.Gr_dB)
-    G=db2lin(p.G_dB)
+    G = db2lin(p.G_dB)
     prefactor = (p.Pt * Gt * Gr * G * p.dx * p.dy * p.lambda_**2 * p.A**2) / (64 * PI**3)
     return prefactor * abs(total_field)**2
 
 def generate_pattern_from_int(pattern_int, M, N):
+    """
+    Generate a binary matrix of size NxM where each column is fully enabled (1s)
+    if the corresponding bit in pattern_int is 1.
+    """
     binary = np.zeros((N, M), dtype=int)
     for m in range(M):
-        binary[:, m] = (pattern_int >> m) & 1
+        if (pattern_int >> m) & 1:
+            binary[:, m] = 1
     return binary
+
+def generate_256bit_hex_pattern(binary_matrix):
+    """
+    Convert the 16x16 binary matrix into a single 256-bit hexadecimal string.
+    Each row (16 bits) is concatenated top to bottom (row 0 at MSB).
+    """
+    pattern_256 = 0
+    for row in range(16):
+        row_bits = 0
+        for bit in range(16):
+            row_bits |= (binary_matrix[row][bit] << (15 - bit))  # MSB first
+        pattern_256 = (pattern_256 << 16) | row_bits
+    return f"0x{pattern_256:064X}"
 
 def evaluate_pattern(i, p):
     binary = generate_pattern_from_int(i, p.M, p.N)
@@ -90,12 +108,19 @@ if __name__ == "__main__":
 
     # Display results
     print("\n=== BEST PATTERN ===")
-    print(f"Bitmask: 0x{best['pattern']:04X}")
-    print("Columns ON/OFF:", format_pattern(best["pattern"], p.M))
-    print(f"Max Power: {best['power']:.3e} W ({10 * np.log10(best['power']):.2f} dBW)")
-    
+    print(f"Bitmask (16-bit): 0x{best['pattern']:04X}")
+    print("Columns ON/OFF   :", format_pattern(best["pattern"], p.M))
+
+    best_binary = generate_pattern_from_int(best["pattern"], p.M, p.N)
+    best_hex256 = generate_256bit_hex_pattern(best_binary)
+    print("256-bit Hex Pattern:", best_hex256)
+    print(f"Max Power        : {best['power']:.3e} W ({10 * np.log10(best['power']):.2f} dBW)")
 
     print("\n=== WORST PATTERN ===")
-    print(f"Bitmask: 0x{worst['pattern']:04X}")
-    print("Columns ON/OFF:", format_pattern(worst["pattern"], p.M))
-    print(f"Min Power: {worst['power']:.3e} W ({10 * np.log10(worst['power']):.2f} dBW)")
+    print(f"Bitmask (16-bit): 0x{worst['pattern']:04X}")
+    print("Columns ON/OFF   :", format_pattern(worst["pattern"], p.M))
+
+    worst_binary = generate_pattern_from_int(worst["pattern"], p.M, p.N)
+    worst_hex256 = generate_256bit_hex_pattern(worst_binary)
+    print("256-bit Hex Pattern:", worst_hex256)
+    print(f"Min Power        : {worst['power']:.3e} W ({10 * np.log10(worst['power']):.2f} dBW)")
