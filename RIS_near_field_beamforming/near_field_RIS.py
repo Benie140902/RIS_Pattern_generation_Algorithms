@@ -8,17 +8,16 @@ PI = np.pi
 # Parameters
 class Params:
     def __init__(self):
-        self.lambda_ = 0.085          # wavelength (m)
-        self.dx = self.dy = 0.015     # RIS spacing (m)
-        self.M = self.N = 16          # RIS size (16x16)
-        self.Pt = 1e-3                # transmit power (W)
-        self.Gt_dB = 60               # Tx gain in dB
-        self.Gr_dB = 34               # Rx gain in dB
-        self.G_dB = 0                 # unit cell gain (dB)
-        self.A = 1.0                  # reflection magnitude
-        self.d1 = 3.5                 # Tx distance behind RIS
+        self.lambda_ = 0.085
+        self.dx = self.dy = 0.015
+        self.M = self.N = 16
+        self.Pt = 1e-3
+        self.Gt_dB = 60
+        self.Gr_dB = 34
+        self.G_dB = 0
+        self.A = 1.0
+        self.d1 = 3.5
 
-        # Rx position (azimuth 30°)
         azimuth_deg = 30.0
         azimuth_rad = np.radians(azimuth_deg)
         d2 = 3.0
@@ -57,10 +56,6 @@ def compute_Prx(binary, p):
     return prefactor * abs(total_field)**2
 
 def generate_pattern_from_int(pattern_int, M, N):
-    """
-    Generate a binary matrix of size NxM where each column is fully enabled (1s)
-    if the corresponding bit in pattern_int is 1.
-    """
     binary = np.zeros((N, M), dtype=int)
     for m in range(M):
         if (pattern_int >> m) & 1:
@@ -68,15 +63,11 @@ def generate_pattern_from_int(pattern_int, M, N):
     return binary
 
 def generate_256bit_hex_pattern(binary_matrix):
-    """
-    Convert the 16x16 binary matrix into a single 256-bit hexadecimal string.
-    Each row (16 bits) is concatenated top to bottom (row 0 at MSB).
-    """
     pattern_256 = 0
     for row in range(16):
         row_bits = 0
         for bit in range(16):
-            row_bits |= (binary_matrix[row][bit] << (15 - bit))  # MSB first
+            row_bits |= (binary_matrix[row][bit] << (15 - bit))
         pattern_256 = (pattern_256 << 16) | row_bits
     return f"0x{pattern_256:064X}"
 
@@ -91,8 +82,8 @@ def format_pattern(pattern, M):
 # Main execution
 if __name__ == "__main__":
     p = Params()
-    best = {"pattern": 0, "power": -np.inf}
-    worst = {"pattern": 0, "power": np.inf}
+    best_patterns = []
+    worst_patterns = []
 
     total_patterns = 2**16
     print("Evaluating 65,536 column patterns...")
@@ -101,26 +92,47 @@ if __name__ == "__main__":
         results = executor.map(lambda i: evaluate_pattern(i, p), range(total_patterns))
 
         for pattern, power in results:
-            if power > best["power"]:
-                best = {"pattern": pattern, "power": power}
-            if power < worst["power"]:
-                worst = {"pattern": pattern, "power": power}
+            # Insert into top 10 best
+            if len(best_patterns) < 10 or power > best_patterns[-1]['power']:
+                binary = generate_pattern_from_int(pattern, p.M, p.N)
+                hex256 = generate_256bit_hex_pattern(binary)
+                entry = {
+                    "pattern": pattern,
+                    "power": power,
+                    "binary": binary,
+                    "hex256": hex256
+                }
+                best_patterns.append(entry)
+                best_patterns = sorted(best_patterns, key=lambda x: -x["power"])[:10]
 
-    # Display results
-    print("\n=== BEST PATTERN ===")
-    print(f"Bitmask (16-bit): 0x{best['pattern']:04X}")
-    print("Columns ON/OFF   :", format_pattern(best["pattern"], p.M))
+            # Insert into top 10 worst
+            if len(worst_patterns) < 10 or power < worst_patterns[-1]['power']:
+                binary = generate_pattern_from_int(pattern, p.M, p.N)
+                hex256 = generate_256bit_hex_pattern(binary)
+                entry = {
+                    "pattern": pattern,
+                    "power": power,
+                    "binary": binary,
+                    "hex256": hex256
+                }
+                worst_patterns.append(entry)
+                worst_patterns = sorted(worst_patterns, key=lambda x: x["power"])[:10]
 
-    best_binary = generate_pattern_from_int(best["pattern"], p.M, p.N)
-    best_hex256 = generate_256bit_hex_pattern(best_binary)
-    print("256-bit Hex Pattern:", best_hex256)
-    print(f"Max Power        : {best['power']:.3e} W ({10 * np.log10(best['power']):.2f} dBW)")
+    # Display Best 10
+    print("\n=== TOP 10 BEST PATTERNS ===")
+    for i, item in enumerate(best_patterns):
+        print(f"\nRank {i+1}")
+        print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
+        print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
+        print("256-bit Hex Pattern:", item["hex256"])
+        print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
 
-    print("\n=== WORST PATTERN ===")
-    print(f"Bitmask (16-bit): 0x{worst['pattern']:04X}")
-    print("Columns ON/OFF   :", format_pattern(worst["pattern"], p.M))
+    # Display Worst 10
+    print("\n=== TOP 10 WORST PATTERNS ===")
+    for i, item in enumerate(worst_patterns):
+        print(f"\nRank {i+1}")
+        print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
+        print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
+        print("256-bit Hex Pattern:", item["hex256"])
+        print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
 
-    worst_binary = generate_pattern_from_int(worst["pattern"], p.M, p.N)
-    worst_hex256 = generate_256bit_hex_pattern(worst_binary)
-    print("256-bit Hex Pattern:", worst_hex256)
-    print(f"Min Power        : {worst['power']:.3e} W ({10 * np.log10(worst['power']):.2f} dBW)")
