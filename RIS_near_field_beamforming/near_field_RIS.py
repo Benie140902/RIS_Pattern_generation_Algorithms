@@ -1,4 +1,4 @@
-mport numpy as np
+import numpy as np
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -9,7 +9,7 @@ PI = np.pi
 class Params:
     def __init__(self):
         self.lambda_ = 0.085
-        self.dx = self.dy = 0.015
+        self.dx = self.dy = 26 mm
         self.M = self.N = 16
         self.Pt = 1e-3
         self.Gt_dB = 60
