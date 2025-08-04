@@ -1,4 +1,4 @@
-import numpy as np
+mport numpy as np
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -33,7 +33,7 @@ def distance3D(x1, y1, z1, x2, y2, z2):
 
 def compute_Prx(binary, p):
     k = 2 * PI / p.lambda_
-    z_tx = -p.d1
+    z_tx = p.d1
     total_field = 0 + 0j
 
     for n in range(p.N):
@@ -61,6 +61,15 @@ def generate_pattern_from_int(pattern_int, M, N):
         if (pattern_int >> m) & 1:
             binary[:, m] = 1
     return binary
+
+def convert(binary):
+    # patterns = []
+    # binary = bin(i)[2:].zfill(16)
+    hex_pattern = "!0X"
+    for bit in binary:
+        hex_pattern += "FFFF" if bit == 1 else "0000"
+    # patterns.append(hex_pattern)
+    return hex_pattern
 
 def generate_256bit_hex_pattern(binary_matrix):
     pattern_256 = 0
@@ -121,18 +130,20 @@ if __name__ == "__main__":
     # Display Best 10
     print("\n=== TOP 10 BEST PATTERNS ===")
     for i, item in enumerate(best_patterns):
-        print(f"\nRank {i+1}")
-        print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
+        # print(f"\nRank {i+1}")
+        # print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
         print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
-        print("256-bit Hex Pattern:", item["hex256"])
+        print(convert(format_pattern(item["pattern"], p.M)))
+        # print("256-bit Hex Pattern:", item["hex256"])
         print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
 
     # Display Worst 10
-    print("\n=== TOP 10 WORST PATTERNS ===")
-    for i, item in enumerate(worst_patterns):
-        print(f"\nRank {i+1}")
-        print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
-        print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
-        print("256-bit Hex Pattern:", item["hex256"])
-        print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
+    # print("\n=== TOP 10 WORST PATTERNS ===")
+    # for i, item in enumerate(worst_patterns):
+    #     print(f"\nRank {i+1}")
+    #     print(f"Bitmask (16-bit): 0x{item['pattern']:04X}")
+    #     print("Columns ON/OFF   :", format_pattern(item["pattern"], p.M))
+    #     print("256-bit Hex Pattern:", item["hex256"])
+    #     print(f"Power            : {item['power']:.3e} W ({10 * np.log10(item['power']):.2f} dBW)")
+
 
