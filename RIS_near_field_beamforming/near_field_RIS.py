@@ -11,14 +11,14 @@ class Params:
         self.lambda_ = 0.085
         self.dx = self.dy = 0.026
         self.M = self.N = 16
-        self.Pt = 1
+        self.Pt = 1e-3
         self.Gt_dB = 20
         self.Gr_dB = 20
         self.G_dB = 15
         self.A = 0.8
         self.d1 = 3.0
 
-        azimuth_deg = 30.0
+        azimuth_deg = -40.0
         azimuth_rad = np.radians(azimuth_deg)
         d2 = 3.0
         self.x_rx = d2 * np.cos(azimuth_rad)
@@ -36,17 +36,21 @@ def compute_Prx(binary, p):
     z_tx = p.d1
     total_field = 0 + 0j
 
-    for n in range(p.N):
-        for m in range(p.M):
-            x_nm = (m - (p.M - 1) / 2.0) * p.dx
-            y_nm = (n - (p.N - 1) / 2.0) * p.dy
+    for m in range(p.N):
+        for n in range(p.M):
+            x_m = (m - (p.M - 1) / 2.0) * p.dx
+            y_n = (n - (p.N - 1) / 2.0) * p.dy
 
-            rt = distance3D(x_nm, y_nm, 0, 0, 0, z_tx)
-            rr = distance3D(x_nm, y_nm, 0, p.x_rx, p.y_rx, p.z_rx)
+            rt = distance3D(x_m, y_n, 0, 0, 0, z_tx)
+            rr = distance3D(x_m, y_n, 0, p.x_rx, p.y_rx, p.z_rx)
             total_path = rt + rr
 
-            phase = PI if binary[n][m] == 1 else 0.0
-            exp_term = np.exp(-1j * (k * total_path - phase))
+            phase = PI if binary[n][m] == 1 else 0
+            if phase !=0:
+                azimuth_nm=((k*total_path)%(2*phase))
+            else:
+                azimuth_nm = 0
+            exp_term = np.exp(-1j * (k * total_path - azimuth_nm))
             total_field += exp_term / (rt * rr)
 
     Gt = db2lin(p.Gt_dB)
